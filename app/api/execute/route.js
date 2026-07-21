@@ -1,31 +1,50 @@
 import { NextResponse } from "next/server";
-// import { runMatchmakerAgent, runEthicalGuardian } from "@/lib/agents";
+import { runMentaLinkAgent } from "@/lib/orchestrator";
+
+export const maxDuration = 300;
 
 export async function POST(request) {
+  let prompt;
   try {
-    const { prompt } = await request.json();
+    const body = await request.json();
+    prompt = body?.prompt;
+  } catch {
+    return NextResponse.json(
+      {
+        status: "error",
+        error: "Request body must be valid JSON with a 'prompt' field.",
+        response: null,
+        steps: [],
+      },
+      { status: 400 }
+    );
+  }
 
-    const steps = [];
+  if (typeof prompt !== "string" || prompt.trim() === "") {
+    return NextResponse.json(
+      {
+        status: "error",
+        error: "The 'prompt' field must be a non-empty string.",
+        response: null,
+        steps: [],
+      },
+      { status: 400 }
+    );
+  }
 
-    // TODO: Run the Matchmaker agent:
-    // const matchmaker = await runMatchmakerAgent(prompt);
-    // steps.push(matchmaker.step);
-
-    // TODO: Run the Ethical Guardian on the matchmaker output:
-    // const guardian = await runEthicalGuardian(matchmaker.response);
-    // steps.push(guardian.step);
-
+  try {
+    const { response, steps } = await runMentaLinkAgent(prompt);
     return NextResponse.json({
       status: "ok",
       error: null,
-      response: "Final dummy response",
-      steps: steps,
+      response,
+      steps,
     });
   } catch (error) {
     return NextResponse.json(
       {
         status: "error",
-        error: error.message,
+        error: error.message || "The agent failed unexpectedly.",
         response: null,
         steps: [],
       },
